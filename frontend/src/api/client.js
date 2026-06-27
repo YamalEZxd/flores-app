@@ -1,5 +1,5 @@
 // frontend/src/api/client.js
-const BASE_URL = "https://flores-app.onrender.com/api";
+const BASE_URL = import.meta.env.VITE_API_URL + "/api";
 
 async function solicitar(ruta, opciones = {}) {
   const respuesta = await fetch(`${BASE_URL}${ruta}`, {
