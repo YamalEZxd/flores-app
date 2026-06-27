@@ -1,25 +1,13 @@
 // backend/db/database.js
-const sql = require("mssql");
+const { Pool } = require("pg");
 
-const config = {
-  user: "flores_app",
-  password: "Flores2026!",
-  server: "DESKTOP-G6MIECL\\SQLEXPRESS", // ojo: doble backslash
-  database: "FloresDB",
-  options: {
-    encrypt: false,               // en local no se necesita cifrado
-    trustServerCertificate: true,
-  },
-};
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : false,
+});
 
-let poolPromise = sql.connect(config)
-  .then((pool) => {
-    console.log("Conectado a SQL Server (FloresDB)");
-    return pool;
-  })
-  .catch((err) => {
-    console.error("Error al conectar a SQL Server:", err.message);
-    throw err;
-  });
+pool.connect()
+  .then(() => console.log("Conectado a PostgreSQL"))
+  .catch((err) => console.error("Error al conectar a PostgreSQL:", err.message));
 
-module.exports = { sql, poolPromise };
+module.exports = pool;
