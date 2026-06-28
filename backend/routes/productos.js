@@ -11,7 +11,7 @@ router.get("/", async (req, res) => {
 
     if (categoria) {
       params.push(categoria);
-      query += ` AND categoria = $${params.length}`;
+      query += ` AND UPPER(categoria) = UPPER($${params.length})`;
     }
     if (buscar) {
       params.push(`%${buscar}%`);
