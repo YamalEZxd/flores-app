@@ -8,12 +8,18 @@ const ETIQUETAS = { registrado: "Registrado", en_preparacion: "En preparación",
 export default function AdminPanel() {
   const [pedidos, setPedidos] = useState([]);
   const [cargando, setCargando] = useState(true);
+  const [detalle, setDetalle] = useState(null);
 
   const cargar = () => {
     setCargando(true);
     api.obtenerPedidos().then(setPedidos).finally(() => setCargando(false));
   };
   useEffect(cargar, []);
+
+  const verDetalle = async (id) => {
+    const data = await api.obtenerPedido(id);
+    setDetalle(data);
+  };
 
   const cambiarEstado = async (pedido, nuevoEstado) => {
     let fecha = pedido.fecha_entrega_estimada;
@@ -32,15 +38,15 @@ export default function AdminPanel() {
   return (
     <div className="contenedor" style={{ padding: "28px 0 60px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-  <h1 style={{ margin: 0 }}>Panel del negocio</h1>
-  <CerrarSesion />
-</div>
+        <h1 style={{ margin: 0 }}>Panel del negocio</h1>
+        <CerrarSesion />
+      </div>
       {cargando && <p>Cargando pedidos…</p>}
       {!cargando && pedidos.length === 0 && <p>Todavía no hay pedidos.</p>}
       {pedidos.length > 0 && (
         <div style={{ overflowX: "auto" }}>
           <table className="tabla-admin">
-            <thead><tr><th>#</th><th>Cliente</th><th>Teléfono</th><th>Total</th><th>Estado</th><th>Entrega</th><th>Acción</th></tr></thead>
+            <thead><tr><th>#</th><th>Cliente</th><th>Teléfono</th><th>Total</th><th>Estado</th><th>Entrega</th><th>Acción</th><th>Detalle</th></tr></thead>
             <tbody>
               {pedidos.map((p) => (
                 <tr key={p.id}>
@@ -53,24 +59,55 @@ export default function AdminPanel() {
                       {ESTADOS.map((e) => <option key={e} value={e}>{ETIQUETAS[e]}</option>)}
                     </select>
                   </td>
+                  <td>
+                    <button onClick={() => verDetalle(p.id)} style={{ background: "#e8567a", color: "#fff", border: "none", borderRadius: 8, padding: "6px 14px", cursor: "pointer", fontWeight: 600 }}>
+                      Ver
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       )}
+
+      {/* MODAL DETALLE */}
+      {detalle && (
+        <div onClick={() => setDetalle(null)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ background: "#fff", borderRadius: 16, padding: 32, maxWidth: 480, width: "90%", maxHeight: "80vh", overflowY: "auto" }}>
+            <h2 style={{ marginTop: 0 }}>Pedido #{detalle.id}</h2>
+            <p><strong>Cliente:</strong> {detalle.cliente_nombre}</p>
+            <p><strong>Teléfono:</strong> {detalle.telefono}</p>
+            <p><strong>Dirección:</strong> {detalle.direccion}</p>
+            <p><strong>Estado:</strong> {ETIQUETAS[detalle.estado]}</p>
+            <p><strong>Total:</strong> S/ {Number(detalle.total).toFixed(2)}</p>
+            <hr />
+            <h3>Productos</h3>
+            {detalle.items?.map((item) => (
+              <div key={item.producto_id} style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                <span>{item.nombre} x{item.cantidad}</span>
+                <span>S/ {Number(item.subtotal).toFixed(2)}</span>
+              </div>
+            ))}
+            <button onClick={() => setDetalle(null)} style={{ marginTop: 20, background: "#1a1a1a", color: "#fff", border: "none", borderRadius: 8, padding: "10px 24px", cursor: "pointer", width: "100%", fontWeight: 600 }}>
+              Cerrar
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
+
   function CerrarSesion() {
-  const navigate = useNavigate();
-  const cerrar = () => {
-    localStorage.removeItem("flores_admin");
-    navigate("/");
-  };
-  return (
-    <button className="btn btn-secundario" onClick={cerrar}>
-      Cerrar sesión
-    </button>
-  );
-}
+    const navigate = useNavigate();
+    const cerrar = () => {
+      localStorage.removeItem("flores_admin");
+      navigate("/");
+    };
+    return (
+      <button className="btn btn-secundario" onClick={cerrar}>
+        Cerrar sesión
+      </button>
+    );
+  }
 }
