@@ -9,6 +9,8 @@ export default function AdminPanel() {
   const [pedidos, setPedidos] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [detalle, setDetalle] = useState(null);
+  const [modalFecha, setModalFecha] = useState(null);
+  const [fechaSeleccionada, setFechaSeleccionada] = useState("");
 
   const cargar = () => {
     setCargando(true);
@@ -24,11 +26,24 @@ export default function AdminPanel() {
   const cambiarEstado = async (pedido, nuevoEstado) => {
     let fecha = pedido.fecha_entrega_estimada;
     if (nuevoEstado === "enviado" && !fecha) {
-      fecha = window.prompt("Fecha estimada de entrega (AAAA-MM-DD):");
-      if (!fecha) return;
+      setFechaSeleccionada("");
+      setModalFecha({ pedido, nuevoEstado });
+      return;
     }
     try {
       await api.actualizarEstadoPedido(pedido.id, { estado: nuevoEstado, fecha_entrega_estimada: fecha });
+      cargar();
+    } catch (e) {
+      alert(e.message);
+    }
+  };
+
+  const confirmarFecha = async () => {
+    if (!fechaSeleccionada) return alert("Selecciona una fecha");
+    const { pedido, nuevoEstado } = modalFecha;
+    setModalFecha(null);
+    try {
+      await api.actualizarEstadoPedido(pedido.id, { estado: nuevoEstado, fecha_entrega_estimada: fechaSeleccionada });
       cargar();
     } catch (e) {
       alert(e.message);
@@ -41,16 +56,21 @@ export default function AdminPanel() {
         <h1 style={{ margin: 0 }}>Panel del negocio</h1>
         <CerrarSesion />
       </div>
+
       {cargando && <p>Cargando pedidos…</p>}
       {!cargando && pedidos.length === 0 && <p>Todavía no hay pedidos.</p>}
       {pedidos.length > 0 && (
         <div style={{ overflowX: "auto" }}>
           <table className="tabla-admin">
-            <thead><tr><th>#</th><th>Cliente</th><th>Teléfono</th><th>Total</th><th>Estado</th><th>Entrega</th><th>Acción</th><th>Detalle</th></tr></thead>
+            <thead>
+              <tr><th>#</th><th>Cliente</th><th>Teléfono</th><th>Total</th><th>Estado</th><th>Entrega</th><th>Acción</th><th>Detalle</th></tr>
+            </thead>
             <tbody>
               {pedidos.map((p) => (
                 <tr key={p.id}>
-                  <td>{p.id}</td><td>{p.cliente_nombre}</td><td>{p.telefono}</td>
+                  <td>{p.id}</td>
+                  <td>{p.cliente_nombre}</td>
+                  <td>{p.telefono}</td>
                   <td>S/ {Number(p.total).toFixed(2)}</td>
                   <td><span className={`estado-pill estado-${p.estado}`}>{ETIQUETAS[p.estado]}</span></td>
                   <td>{p.fecha_entrega_estimada ? new Date(p.fecha_entrega_estimada).toLocaleDateString() : "—"}</td>
@@ -68,6 +88,31 @@ export default function AdminPanel() {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* MODAL FECHA */}
+      {modalFecha && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ background: "#fff", borderRadius: 16, padding: 32, maxWidth: 360, width: "90%" }}>
+            <h3 style={{ marginTop: 0 }}>📅 Fecha estimada de entrega</h3>
+            <p style={{ color: "#666", marginBottom: 16 }}>Selecciona la fecha para el pedido #{modalFecha.pedido.id}</p>
+            <input
+              type="date"
+              value={fechaSeleccionada}
+              min={new Date().toISOString().split("T")[0]}
+              onChange={(e) => setFechaSeleccionada(e.target.value)}
+              style={{ width: "100%", padding: "10px", borderRadius: 8, border: "1px solid #ccc", fontSize: "1rem", marginBottom: 16, boxSizing: "border-box" }}
+            />
+            <div style={{ display: "flex", gap: 12 }}>
+              <button onClick={() => setModalFecha(null)} style={{ flex: 1, padding: "10px", borderRadius: 8, border: "1px solid #ccc", cursor: "pointer", background: "#f5f5f5", fontWeight: 600 }}>
+                Cancelar
+              </button>
+              <button onClick={confirmarFecha} style={{ flex: 1, padding: "10px", borderRadius: 8, border: "none", cursor: "pointer", background: "#e8567a", color: "#fff", fontWeight: 700 }}>
+                Confirmar
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
